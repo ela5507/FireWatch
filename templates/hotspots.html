@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FireWatch - Hotspot Monitoring</title>
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #101820;
+            color: white;
+        }
+
+        header {
+            background: #172630;
+            padding: 22px;
+            text-align: center;
+            border-bottom: 2px solid #ff5722;
+        }
+
+        header h1 {
+            margin: 0;
+            color: #ff7043;
+        }
+
+        header p {
+            color: #ddd;
+        }
+
+        .container {
+            width: 94%;
+            max-width: 1400px;
+            margin: 25px auto;
+        }
+
+        .navigation {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .navigation a,
+        button,
+        .download {
+            background: #ff5722;
+            color: white;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .navigation a:hover,
+        button:hover,
+        .download:hover {
+            background: #e64a19;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #1e303d;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #ff5722;
+        }
+
+        .card h2 {
+            color: #ff7043;
+            margin: 5px 0;
+        }
+
+        .card p {
+            color: #ddd;
+            margin: 5px 0;
+        }
+
+        .filters {
+            background: #1e303d;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        input, select {
+            padding: 11px;
+            border-radius: 6px;
+            border: 1px solid #aaa;
+            min-width: 150px;
+        }
+
+        .map-section,
+        .table-section {
+            background: #1e303d;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        #map {
+            width: 100%;
+            height: 500px;
+            border-radius: 8px;
+            z-index: 1;
+        }
+
+        #loading {
+            display: none;
+            background: #263b49;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            color: #ffcc80;
+            text-align: center;
+        }
+
+        .error {
+            background: #7b2525;
+            padding: 14px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #43515b;
+            text-align: center;
+        }
+
+        th {
+            background: #263b49;
+            color: #ffab91;
+        }
+
+        tr:hover {
+            background: #2b414f;
+        }
+
+        .high {
+            color: #ff5252;
+            font-weight: bold;
+        }
+
+        .nominal {
+            color: #ffca28;
+            font-weight: bold;
+        }
+
+        .low {
+            color: #69f0ae;
+            font-weight: bold;
+        }
+
+        .note {
+            color: #ccc;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        @media(max-width: 600px) {
+            #map {
+                height: 350px;
+            }
+
+            .filter-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            input, select, .filter-form button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>🔥 FireWatch</h1>
+    <p>Satellite-Based Fire Hotspot Monitoring System</p>
+</header>
+
+<div class="container">
+
+    <div class="navigation">
+        <a href="/">Home</a>
+        <a href="/hotspots?region=india">India</a>
+        <a href="/hotspots?region=tamilnadu">Tamil Nadu</a>
+    </div>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <div class="cards">
+
+        <div class="card">
+            <p>Displayed Observations</p>
+            <h2>{{ total_count }}</h2>
+        </div>
+
+        <div class="card">
+            <p>High Confidence</p>
+            <h2>{{ high_count }}</h2>
+        </div>
+
+        <div class="card">
+            <p>Nominal Confidence</p>
+            <h2>{{ nominal_count }}</h2>
+        </div>
+
+        <div class="card">
+            <p>Low Confidence</p>
+            <h2>{{ low_count }}</h2>
+        </div>
+
+    </div>
+
+    <section class="filters">
+        <h2>🔎 Filter Hotspot Observations</h2>
+
+        <form method="GET" action="/hotspots" class="filter-form">
+
+            <select name="region">
+                <option value="india"
+                    {% if selected_region == 'india' %}selected{% endif %}>
+                    India
+                </option>
+
+                <option value="tamilnadu"
+                    {% if selected_region == 'tamilnadu' %}selected{% endif %}>
+                    Tamil Nadu
+                </option>
+            </select>
+
+            <input type="date"
+                   name="date"
+                   value="{{ selected_date }}">
+
+            <select name="confidence">
+                <option value="ALL"
+                    {% if selected_confidence == 'ALL' %}selected{% endif %}>
+                    All Confidence
+                </option>
+
+                <option value="H"
+                    {% if selected_confidence == 'H' %}selected{% endif %}>
+                    High
+                </option>
+
+                <option value="N"
+                    {% if selected_confidence == 'N' %}selected{% endif %}>
+                    Nominal
+                </option>
+
+                <option value="L"
+                    {% if selected_confidence == 'L' %}selected{% endif %}>
+                    Low
+                </option>
+            </select>
+
+            <input type="text"
+                   name="search"
+                   placeholder="Search coordinates or date"
+                   value="{{ search }}">
+
+            <button type="submit">Apply Filters</button>
+
+            <a class="download"
+               href="/hotspots?region={{ selected_region }}">
+                Clear Filters
+            </a>
+
+        </form>
+    </section>
+
+    <section class="map-section">
+
+        <h2>🗺️ Fire Hotspot Map</h2>
+
+        <div id="loading">Loading hotspot observations...</div>
+
+        <div id="map"></div>
+
+        <p class="note">
+            Red markers indicate satellite hotspot observations.
+            Click a marker to view its details. Cluster numbers represent
+            grouped observations.
+        </p>
+
+    </section>
+
+    <section class="table-section">
+
+        <h2>📊 Hotspot Observation Details</h2>
+
+        <p>Showing {{ hotspots|length }} observations.</p>
+
+        <div class="table-wrapper">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Latitude</th>
+                        <th>Longitude</th>
+                        <th>Date</th>
+                        <th>Time (UTC)</th>
+                        <th>Confidence</th>
+                        <th>Satellite</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for item in hotspots %}
+
+                    <tr>
+                        <td>{{ item.latitude }}</td>
+                        <td>{{ item.longitude }}</td>
+                        <td>{{ item.acq_date }}</td>
+                        <td>{{ item.acq_time }}</td>
+
+                        <td>
+                            {% if item.confidence == 'h' or item.confidence == 'H' %}
+                                <span class="high">High</span>
+                            {% elif item.confidence == 'n' or item.confidence == 'N' %}
+                                <span class="nominal">Nominal</span>
+                            {% elif item.confidence == 'l' or item.confidence == 'L' %}
+                                <span class="low">Low</span>
+                            {% else %}
+                                {{ item.confidence }}
+                            {% endif %}
+                        </td>
+
+                        <td>{{ item.satellite }}</td>
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="6">No observations found.</td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+            </table>
+
+        </div>
+
+        <br>
+
+        <a class="download"
+           href="/download-report?region={{ selected_region }}&date={{ selected_date }}&confidence={{ selected_confidence }}&search={{ search|urlencode }}">
+            Download CSV Report
+        </a>
+
+    </section>
+
+    <p class="note">
+        Data source: NASA FIRMS.
+        Satellite hotspot observations are not necessarily confirmed fires.
+        Confidence indicates detection confidence, not fire severity.
+    </p>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script>
+
+    const map = L.map('map').setView([22.5, 82.5], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markerCluster = L.markerClusterGroup({
+        chunkedLoading: true,
+        chunkInterval: 200,
+        chunkDelay: 50,
+        maxClusterRadius: 80
+    });
+
+    const hotspots = {{ hotspots | tojson }};
+
+    const loading = document.getElementById("loading");
+
+    if (hotspots.length > 0) {
+
+        loading.style.display = "block";
+
+        const markers = [];
+
+        hotspots.forEach(function(item) {
+
+            const lat = parseFloat(item.latitude);
+            const lon = parseFloat(item.longitude);
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                return;
+            }
+
+            const confidence = String(item.confidence || "Unknown").toUpperCase();
+
+            const marker = L.marker([lat, lon]);
+
+            marker.bindPopup(`
+                <b>🔥 Hotspot Observation</b><br>
+                Latitude: ${lat}<br>
+                Longitude: ${lon}<br>
+                Date: ${item.acq_date || "N/A"}<br>
+                Time (UTC): ${item.acq_time || "N/A"}<br>
+                Confidence: ${confidence}<br>
+                Satellite: ${item.satellite || "N/A"}
+            `);
+
+            markers.push(marker);
+
+        });
+
+        markerCluster.addLayers(markers);
+        map.addLayer(markerCluster);
+
+        if (markers.length > 0) {
+            map.fitBounds(markerCluster.getBounds(), {
+                padding: [30, 30],
+                maxZoom: 9
+            });
+        }
+
+        loading.style.display = "none";
+
+    } else {
+
+        loading.style.display = "none";
+
+    }
+
+</script>
+
+</body>
+</html>

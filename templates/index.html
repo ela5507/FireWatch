@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FireWatch | Forest Fire Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<header>
+    <div class="logo">🔥 FireWatch</div>
+    <p>Forest Fire Monitoring System</p>
+</header>
+
+<div style="text-align:center; margin:20px;">
+    <a href="/hotspots"
+       style="background:#17603c; color:white; padding:14px 25px;
+       text-decoration:none; border-radius:8px; display:inline-block;">
+       🔥 View NASA Fire Hotspots
+    </a>
+</div>
+
+
+<section class="hero">
+    <h1>Protect Forests. Monitor Fires.</h1>
+    <p>
+        A simple platform concept for viewing forest images
+        and supporting wildfire awareness.
+    </p>
+</section>
+
+<main>
+    <section class="upload-card">
+        <h2>Satellite Image Upload</h2>
+        <p>Upload a JPG, PNG or WEBP image to view it in the dashboard.</p>
+
+        <form method="POST" enctype="multipart/form-data">
+
+            <label for="location">Location (optional)</label>
+            <input
+                type="text"
+                id="location"
+                name="location"
+                placeholder="Enter forest location"
+                value="{{ location }}"
+            >
+
+            <label for="satellite_image">Choose Image</label>
+            <input
+                type="file"
+                id="satellite_image"
+                name="satellite_image"
+                accept=".jpg,.jpeg,.png,.webp"
+                required
+            >
+
+            <button type="submit">Upload Image</button>
+        </form>
+
+        {% if message %}
+            <div class="message">{{ message }}</div>
+        {% endif %}
+
+        {% if image_url %}
+            <div class="result">
+                <h3>Uploaded Image</h3>
+                <img src="{{ image_url }}" alt="Uploaded satellite image">
+
+                {% if location %}
+                    <p><strong>Location:</strong> {{ location }}</p>
+                {% endif %}
+
+                <p class="notice">
+                    Image received. Automated fire detection
+                    and NASA satellite data integration are
+                    not enabled in this prototype yet.
+                </p>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="info-card">
+        <h2>About FireWatch</h2>
+        <p>
+            FireWatch is a forest fire monitoring project concept.
+            It aims to make satellite-based fire information easier
+            to understand through a simple web interface.
+        </p>
+        <p>
+            Future development includes NASA FIRMS data integration,
+            hotspot mapping and location-based alerts.
+        </p>
+    </section>
+</main>
+
+<footer>
+    <p>FireWatch Project | NASA Space Apps Challenge 2026</p>
+</footer>
+
+</body>
+</html>
